@@ -1,11 +1,14 @@
 package main
 
 import (
+	"blagg/internal/database"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func middlewareCors(next http.Handler) http.Handler {
@@ -27,10 +30,17 @@ func main() {
 
 	godotenv.Load()
 	port := os.Getenv("PORT")
+	dbURL := os.Getenv("SQL_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal("Unable to connect to database.")
+	}
+	config := apiConfig{database.New(db)}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/ok", getHealthCheck)
 	mux.HandleFunc("GET /v1/err", getErrorCheck)
+	mux.HandleFunc("POST /v1/users", config.postCreateUser)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{Addr: ":" + port, Handler: corsMux}
