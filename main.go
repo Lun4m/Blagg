@@ -29,15 +29,8 @@ func main() {
 	port := os.Getenv("PORT")
 
 	mux := http.NewServeMux()
-	baseHandler := http.StripPrefix("/v1", http.FileServer(http.Dir(filepathRoot)))
-	mux.Handle("/v1/*", baseHandler)
-
-	mux.HandleFunc("GET /v1/readiness", func(w http.ResponseWriter, r *http.Request) {
-		respondWithJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
-	mux.HandleFunc("GET /v1/err", func(w http.ResponseWriter, r *http.Request) {
-		respondWithError(w, http.StatusInternalServerError, "Internal server error")
-	})
+	mux.HandleFunc("GET /v1/ok", getHealthCheck)
+	mux.HandleFunc("GET /v1/err", getErrorCheck)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{Addr: ":" + port, Handler: corsMux}
