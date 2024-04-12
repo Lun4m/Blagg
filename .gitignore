@@ -1,3 +1,5 @@
 blagg
 .env
 go.sum
+sqlc.yaml
+.sqllsrc.json
