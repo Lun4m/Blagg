@@ -1,7 +1,6 @@
 package main
 
 import (
-	"blagg/internal/database"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,11 +8,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"blagg/internal/database"
 )
 
 type apiConfig struct {
 	DB *database.Queries
 }
+
+type authedHandler func(http.ResponseWriter, *http.Request, database.User)
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
 	type errorResponse struct {
@@ -44,6 +47,7 @@ func (self *apiConfig) postCreateUser(w http.ResponseWriter, r *http.Request) {
 	params := parameters{}
 	if err := decoder.Decode(&params); err != nil {
 		respondWithError(w, 500, err.Error())
+		return
 	}
 	user, err := self.DB.CreateUser(r.Context(), database.CreateUserParams{
 		ID:        uuid.New(),
@@ -54,22 +58,55 @@ func (self *apiConfig) postCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not create user")
+		return
 	}
-
 	respondWithJSON(w, http.StatusOK, user)
 }
 
-func (self *apiConfig) getCurrentUser(w http.ResponseWriter, r *http.Request) {
-	authStr := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authStr, "ApiKey ") {
-		respondWithError(w, http.StatusUnauthorized, "Wrong API key")
+func (self *apiConfig) middlewareAuth(next authedHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authStr := r.Header.Get("Authorization")
+		if !strings.HasPrefix(authStr, "ApiKey ") {
+			respondWithError(w, http.StatusUnauthorized, "API key not provided")
+			return
+		}
+		user, err := self.DB.GetUser(r.Context(), authStr[7:])
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+		next(w, r, user)
+	}
+}
+
+func (self *apiConfig) getCurrentUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	respondWithJSON(w, http.StatusOK, user)
+}
+
+func (self *apiConfig) postCreateFeed(w http.ResponseWriter, r *http.Request, user database.User) {
+	type parameters struct {
+		Name string `json:"name"`
+		Url  string `json:"url"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, 500, err.Error())
 		return
 	}
 
-	user, err := self.DB.GetUser(r.Context(), authStr[7:])
+	feed, err := self.DB.CreateFeed(r.Context(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		Name:      params.Name,
+		Url:       params.Url,
+		UserID:    user.ID,
+	})
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Wrong API key")
+		respondWithError(w, http.StatusInternalServerError, "Could not create feed")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, user)
+	respondWithJSON(w, http.StatusOK, feed)
 }
