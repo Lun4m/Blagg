@@ -3,3 +3,4 @@ blagg
 go.sum
 sqlc.yaml
 .sqllsrc.json
+connection.txt
