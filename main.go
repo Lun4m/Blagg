@@ -43,6 +43,7 @@ func main() {
 	mux.HandleFunc("POST /v1/users", config.postCreateUser)
 	mux.HandleFunc("GET /v1/users", config.middlewareAuth(config.getCurrentUser))
 	mux.HandleFunc("POST /v1/feeds", config.middlewareAuth(config.postCreateFeed))
+	mux.HandleFunc("GET /v1/feeds", config.getAllFeeds)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{Addr: ":" + port, Handler: corsMux}

@@ -110,3 +110,12 @@ func (self *apiConfig) postCreateFeed(w http.ResponseWriter, r *http.Request, us
 	}
 	respondWithJSON(w, http.StatusOK, feed)
 }
+
+func (self *apiConfig) getAllFeeds(w http.ResponseWriter, r *http.Request) {
+	feeds, err := self.DB.GetAllFeeds(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusServiceUnavailable, "Unable to get the feeds")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, feeds)
+}
