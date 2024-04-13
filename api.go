@@ -55,5 +55,5 @@ func (self *apiConfig) postCreateUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Could not create user")
 	}
 
-	respondWithJSON(w, http.StatusOK, databaseUserToUser(user))
+	respondWithJSON(w, http.StatusOK, user)
 }
