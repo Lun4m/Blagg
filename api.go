@@ -119,3 +119,29 @@ func (self *apiConfig) getAllFeeds(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithJSON(w, http.StatusOK, feeds)
 }
+
+func (self *apiConfig) postCreateFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+	type parameters struct {
+		FeedID uuid.UUID `json:"feed_id"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, 500, err.Error())
+		return
+	}
+
+	feedFollow, err := self.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		FeedID:    params.FeedID,
+		UserID:    user.ID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not create feed follow")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, feedFollow)
+}
