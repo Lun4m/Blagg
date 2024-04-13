@@ -41,6 +41,7 @@ func main() {
 	mux.HandleFunc("GET /v1/ok", getHealthCheck)
 	mux.HandleFunc("GET /v1/err", getErrorCheck)
 	mux.HandleFunc("POST /v1/users", config.postCreateUser)
+	mux.HandleFunc("GET /v1/users", config.getCurrentUser)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{Addr: ":" + port, Handler: corsMux}

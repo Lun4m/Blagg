@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,5 +56,20 @@ func (self *apiConfig) postCreateUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Could not create user")
 	}
 
+	respondWithJSON(w, http.StatusOK, user)
+}
+
+func (self *apiConfig) getCurrentUser(w http.ResponseWriter, r *http.Request) {
+	authStr := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authStr, "ApiKey ") {
+		respondWithError(w, http.StatusUnauthorized, "Wrong API key")
+		return
+	}
+
+	user, err := self.DB.GetUser(r.Context(), authStr[7:])
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Wrong API key")
+		return
+	}
 	respondWithJSON(w, http.StatusOK, user)
 }
