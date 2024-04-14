@@ -145,3 +145,12 @@ func (self *apiConfig) postCreateFeedFollow(w http.ResponseWriter, r *http.Reque
 	}
 	respondWithJSON(w, http.StatusOK, feedFollow)
 }
+
+func (self *apiConfig) getUserFeedFollows(w http.ResponseWriter, r *http.Request, user database.User) {
+	feefFollows, err := self.DB.GetUserFeedFollows(r.Context(), user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondWithJSON(w, http.StatusOK, feefFollows)
+}

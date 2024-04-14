@@ -25,7 +25,6 @@ func middlewareCors(next http.Handler) http.Handler {
 }
 
 func main() {
-	const filepathRoot = "."
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	godotenv.Load()
@@ -45,6 +44,7 @@ func main() {
 	mux.HandleFunc("POST /v1/feeds", config.middlewareAuth(config.postCreateFeed))
 	mux.HandleFunc("GET /v1/feeds", config.getAllFeeds)
 	mux.HandleFunc("POST /v1/feed_follows", config.middlewareAuth(config.postCreateFeedFollow))
+	mux.HandleFunc("GET /v1/feed_follows", config.middlewareAuth(config.getUserFeedFollows))
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{Addr: ":" + port, Handler: corsMux}
