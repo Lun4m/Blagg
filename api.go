@@ -33,7 +33,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 	}
-	log.Printf("Success: %v", payload)
+	log.Println("Successful response")
 	w.WriteHeader(code)
 	w.Write(data)
 }
@@ -88,6 +88,10 @@ func (self *apiConfig) postCreateFeed(w http.ResponseWriter, r *http.Request, us
 		Name string `json:"name"`
 		Url  string `json:"url"`
 	}
+	type response struct {
+		Feed       database.Feed       `json:"feed"`
+		FeedFollow database.FeedFollow `json:"feed_follow"`
+	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -108,7 +112,16 @@ func (self *apiConfig) postCreateFeed(w http.ResponseWriter, r *http.Request, us
 		respondWithError(w, http.StatusInternalServerError, "Could not create feed")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, feed)
+
+	feedFollow, err := self.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		FeedID:    feed.ID,
+		UserID:    user.ID,
+	})
+
+	respondWithJSON(w, http.StatusOK, response{feed, feedFollow})
 }
 
 func (self *apiConfig) getAllFeeds(w http.ResponseWriter, r *http.Request) {
