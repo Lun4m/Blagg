@@ -4,3 +4,4 @@ go.sum
 sqlc.yaml
 .sqllsrc.json
 connection.txt
+curl_tests/
