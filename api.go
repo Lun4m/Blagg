@@ -167,3 +167,38 @@ func (self *apiConfig) getUserFeedFollows(w http.ResponseWriter, r *http.Request
 	}
 	respondWithJSON(w, http.StatusOK, feefFollows)
 }
+
+func (self *apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+
+	ffID := r.PathValue("ffID")
+	log.Println(ffID)
+	feedFollowID, err := uuid.Parse(ffID)
+	if err != nil {
+		respondWithError(w, http.StatusServiceUnavailable, err.Error())
+	}
+
+	feefFollows, err := self.DB.GetUserFeedFollows(r.Context(), user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	isUserFF := false
+	for _, ff := range feefFollows {
+		if ff.ID == feedFollowID {
+			isUserFF = true
+			break
+		}
+	}
+
+	if !isUserFF {
+		respondWithError(w, http.StatusUnauthorized, "Deletion not allowed")
+		return
+	}
+
+	if err = self.DB.DeleteFeedFollow(r.Context(), feedFollowID); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not create feed follow")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, "")
+}
