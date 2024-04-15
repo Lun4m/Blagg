@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blagg/internal/database"
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -9,6 +9,8 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+
+	"blagg/internal/database"
 )
 
 func middlewareCors(next http.Handler) http.Handler {
@@ -35,6 +37,8 @@ func main() {
 		log.Fatal("Unable to connect to database.")
 	}
 	config := apiConfig{database.New(db)}
+	ctx := context.Background()
+	config.feedFetchWorker(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/ok", getHealthCheck)
