@@ -89,7 +89,7 @@ func (self *apiConfig) postCreateFeed(w http.ResponseWriter, r *http.Request, us
 		Url  string `json:"url"`
 	}
 	type response struct {
-		Feed       database.Feed       `json:"feed"`
+		Feed       database.JSONFeed   `json:"feed"`
 		FeedFollow database.FeedFollow `json:"feed_follow"`
 	}
 
@@ -121,7 +121,7 @@ func (self *apiConfig) postCreateFeed(w http.ResponseWriter, r *http.Request, us
 		UserID:    user.ID,
 	})
 
-	respondWithJSON(w, http.StatusOK, response{feed, feedFollow})
+	respondWithJSON(w, http.StatusOK, response{feed.Json(), feedFollow})
 }
 
 func (self *apiConfig) getAllFeeds(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +130,13 @@ func (self *apiConfig) getAllFeeds(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusServiceUnavailable, "Unable to get the feeds")
 		return
 	}
-	respondWithJSON(w, http.StatusOK, feeds)
+
+	jsonFeeds := make([]database.JSONFeed, len(feeds))
+	for i := 0; i < len(feeds); i++ {
+		jsonFeeds[i] = feeds[i].Json()
+	}
+
+	respondWithJSON(w, http.StatusOK, jsonFeeds)
 }
 
 func (self *apiConfig) postCreateFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
