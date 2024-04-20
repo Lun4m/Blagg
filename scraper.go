@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/xml"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -13,10 +14,21 @@ import (
 )
 
 func parseFeed(url string) (*Channel, error) {
-	log.Printf("Fetching URL: %v", url)
-	resp, err := http.Get(url)
+	log.Printf("Fetching URL: %v\n", url)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
+	}
+	req.Header.Set("User-Agent", "RSS_feed_bot/3.0")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error: failed HTTP GET request - %v\n", err.Error())
+	}
+
+	if resp.StatusCode > 399 {
+		return nil, fmt.Errorf("Status error: %v", resp.Status)
 	}
 
 	var rss struct {
@@ -25,7 +37,7 @@ func parseFeed(url string) (*Channel, error) {
 
 	decoder := xml.NewDecoder(resp.Body)
 	if err := decoder.Decode(&rss); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error: failed decoding XML - %v\n", err.Error())
 	}
 	return &rss.Channel, nil
 }
@@ -47,22 +59,20 @@ func (self *apiConfig) fetch(ctx context.Context, limit int32) {
 
 			rss, err := parseFeed(feed.Url)
 			if err != nil {
-				log.Println(err.Error())
+				log.Printf("\nFeed: %s\n%s", feed.Url, err.Error())
 				return
 			}
-			log.Printf("Feed %s - printing titles", feed.Url)
+
 			for _, item := range rss.Item {
-				log.Println(item.Title)
+				log.Printf("\nFeed: %s\nTitle: %s\n", feed.Url, item.Title)
 			}
 
-			log.Printf("Feed %s - marking as fetched", feed.Url)
-			err = self.DB.MarkFeedFetched(ctx, database.MarkFeedFetchedParams{
+			if err = self.DB.MarkFeedFetched(ctx, database.MarkFeedFetchedParams{
 				LastFetchedAt: sql.NullTime{Valid: true, Time: time.Now().UTC()},
 				UpdatedAt:     time.Now().UTC(),
 				ID:            feed.ID,
-			})
-			if err != nil {
-				log.Println(err.Error())
+			}); err != nil {
+				log.Printf("\nFeed: %s\n%s", feed.Url, err.Error())
 				return
 			}
 		}()
@@ -70,11 +80,11 @@ func (self *apiConfig) fetch(ctx context.Context, limit int32) {
 	wg.Wait()
 }
 
-func (self *apiConfig) feedFetchWorker(ctx context.Context) {
+func (self *apiConfig) fetchFeeds(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
 	go func() {
 		for range ticker.C {
-			self.fetch(ctx, 10)
+			self.fetch(ctx, 3)
 		}
 	}()
 }

@@ -36,9 +36,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to connect to database.")
 	}
+
 	config := apiConfig{database.New(db)}
 	ctx := context.Background()
-	config.feedFetchWorker(ctx)
+	config.fetchFeeds(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/ok", getHealthCheck)
