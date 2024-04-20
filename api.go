@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -175,9 +176,7 @@ func (self *apiConfig) getUserFeedFollows(w http.ResponseWriter, r *http.Request
 }
 
 func (self *apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
-
 	ffID := r.PathValue("ffID")
-	log.Println(ffID)
 	feedFollowID, err := uuid.Parse(ffID)
 	if err != nil {
 		respondWithError(w, http.StatusServiceUnavailable, err.Error())
@@ -207,4 +206,21 @@ func (self *apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	respondWithJSON(w, http.StatusOK, "")
+}
+
+func (self *apiConfig) getPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	limitStr := r.URL.Query().Get("limit")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 5
+	}
+
+	posts, err := self.DB.GetPostByUser(r.Context(), database.GetPostByUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not get posts for user")
+	}
+	respondWithJSON(w, http.StatusOK, posts)
 }

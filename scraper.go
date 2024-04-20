@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"blagg/internal/database"
+
+	"github.com/google/uuid"
 )
 
 func parseFeed(url string) (*Channel, error) {
@@ -57,14 +59,26 @@ func (self *apiConfig) fetch(ctx context.Context, limit int32) {
 		go func() {
 			defer wg.Done()
 
-			rss, err := parseFeed(feed.Url)
+			rssChannel, err := parseFeed(feed.Url)
 			if err != nil {
 				log.Printf("\nFeed: %s\n%s", feed.Url, err.Error())
 				return
 			}
 
-			for _, item := range rss.Item {
-				log.Printf("\nFeed: %s\nTitle: %s\n", feed.Url, item.Title)
+			for _, item := range rssChannel.Item {
+				if err = self.DB.CreatePost(ctx, database.CreatePostParams{
+					ID:          uuid.New(),
+					CreatedAt:   time.Now().UTC(),
+					UpdatedAt:   time.Now().UTC(),
+					Title:       item.Title,
+					Url:         item.Link,
+					Description: item.Description,
+					// TODO: convert this to time.Time so it's sorted correctly when selecting from database
+					PublishedAt: item.PubDate,
+					FeedID:      feed.ID,
+				}); err != nil {
+					log.Printf("Error creating post: %v", err.Error())
+				}
 			}
 
 			if err = self.DB.MarkFeedFetched(ctx, database.MarkFeedFetchedParams{
